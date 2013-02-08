@@ -1,4 +1,4 @@
-import sys, re, json, mechanize, logging, traceback, time, pprint, datetime
+import sys, re, json, mechanize, logging, time, pprint, datetime
 from BeautifulSoup import BeautifulSoup
 
 """ A class to search for British Airways/Oneworld award availability.
