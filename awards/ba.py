@@ -4,7 +4,16 @@ from BeautifulSoup import BeautifulSoup
 """ A class to search for British Airways/Oneworld award availability.
 """
 class BA:
+    
     debug_dir = u"debug"
+
+    classes = {
+        "M": "Economy",
+        "W": "Premium Economy",
+        "C": "Business Class",
+        "F": "First Class"
+    }
+
     def __init__(self, debug=False, config=None):
         self.debug = debug
         self.config = config
@@ -53,11 +62,14 @@ class BA:
             start_date = dates
             end_date = dates
 
-        if "," in to_code:
-            # multiple destinations
-            to_codes = to_code.split(",")
-        else:
-            to_codes = [to_code]
+        # multiple departure airports
+        from_codes = from_code.split(",")
+
+        # multiple destinations
+        to_codes = to_code.split(",")
+
+        # multiple classes
+        travel_classes = travel_class.split(",")
 
         # parse the strings to datetime.date objects
         start_date = datetime.datetime.strptime(start_date, "%d/%m/%Y")
@@ -72,15 +84,17 @@ class BA:
 
         results = {}
         for single_date in daterange(start_date, end_date):
-            for current_to_code in to_codes:
-                date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
-                print "Checking {0}, {1}-{2}".format(date, from_code, current_to_code)
-                result = self.lookup_day(from_code, current_to_code, date, travel_class, adults)
-                print "... {0} flights".format(sum(map(lambda x: len(x), result.values())))
-                for day in result:
-                    if day not in results:
-                        results[day] = []
-                    results[day].extend(result[day])
+            for current_from_code in from_codes:
+                for current_to_code in to_codes:
+                    for current_travel_class in travel_classes:
+                        date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
+                        print "Checking {0}, {1}-{2}, {3} ({4} seats)".format(date, current_from_code, current_to_code, self.classes[current_travel_class], adults)
+                        result = self.lookup_day(current_from_code, current_to_code, date, current_travel_class, adults)
+                        print "... {0} flights".format(sum(map(lambda x: len(x), result.values())))
+                        for day in result:
+                            if day not in results:
+                                results[day] = []
+                            results[day].extend(result[day])
 
         return results
 
