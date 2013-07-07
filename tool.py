@@ -1,32 +1,38 @@
 import sys, traceback, argparse
 from awards.ba import BA
 from datasources.oneworld import Oneworld
+from datasources.alldata import AllData
 
 parser = argparse.ArgumentParser(description='Look up oneworld award flight availability via British Airways.')
-parser.add_argument('from', metavar='FROM', type=str, nargs=1,
-                   help='Departure Airport (3-letter Code, e.g. LHR)')
-parser.add_argument('--to', metavar='TO', type=str, nargs=1,
+parser.add_argument('from', type=str, action="store", help='Departure Airport (3-letter Code, e.g. LHR)')
+parser.add_argument('--to', type=str, action="store",
                    help='Arrival Airport (3-letter Code, e.g. LHR), leave blank to find all oneworld flights from the departure city')
-parser.add_argument('dates', metavar='DATES', type=str, nargs=1,
+parser.add_argument('dates', type=str, action="store",
                    help='Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format')
-parser.add_argument('class', metavar='CLASS', type=str, nargs=1,
+parser.add_argument('class', type=str, action="store",
                    help='Class of travel as 1-letter code, where Economy=M, Premium Economy=W, Business=C and First=F')
-parser.add_argument('adults', metavar='adults', type=str, nargs=1,
-                   help='number of adults')
+parser.add_argument('adults', type=str, action="store", help='number of adults')
+parser.add_argument('--debug', default=False, action="store_true")
 
 args = vars(parser.parse_args())
 
-from_code = args['from'][0]
-date = args['dates'][0]
-travel_class = args['class'][0]
-adults = args['adults'][0]
+from_code = args['from']
+date = args['dates']
+travel_class = args['class']
+adults = args['adults']
+
+debug = args['debug']
+
+# download data sources
+#ad = AllData()
+#data = ad.get_data()
 
 if args['to'] is None:
     # to_code is blank, so return a list of flights from the departure city
     ow = Oneworld()
 
     try:
-        routes = ow.get_routes(from_code)
+        routes = ow.get_uniq_routes(from_code)
         formatted = ow.format_routes(routes)
         print formatted
     except Exception as e:
@@ -34,9 +40,9 @@ if args['to'] is None:
         traceback.print_exc()
 
 else:
-    to_code = args['to'][0]
+    to_code = args['to']
     # to_code is present, so search for award availability
-    ba = BA(debug=False)
+    ba = BA(debug=debug)
 
     try:
         ba.load_config("config.json")

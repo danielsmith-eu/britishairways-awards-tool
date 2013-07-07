@@ -5,25 +5,28 @@ A tool for searching British Airways/Avios awards more easily
 
 Usage:
 
-    usage: tool.py [-h] FROM TO DATES CLASS ADULTS
+    usage: tool.py [-h] [--to TO] [--debug] from dates class adults
 
     Look up oneworld award flight availability via British Airways.
 
     positional arguments:
-      FROM        Departure Airport (3-letter Code, e.g. LHR)
-      TO          Arrival Airport (3-letter Code, e.g. LHR)
-      DATES       Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format
-      CLASS       Class of travel as 1-letter code, where Economy=M, Premium
+      from        Departure Airport (3-letter Code, e.g. LHR)
+      dates       Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format
+      class       Class of travel as 1-letter code, where Economy=M, Premium
                   Economy=W, Business=C and First=F
-      ADULTS      Number of Adults
+      adults      number of adults
 
     optional arguments:
       -h, --help  show this help message and exit
+      --to TO     Arrival Airport (3-letter Code, e.g. LHR), leave blank to find
+                  all oneworld flights from the departure city
+      --debug
+
 
 
 Example of a North American flight:
 
-    $ python tool.py JFK MIA 10/03/2013 F 1
+    $ python tool.py JFK --to MIA 10/03/2013 F 1
     Checking 10/03/2013
     10/03/2013  AA1141 JFK-MIA 05:40-08:50 (First), 03 hours 10 minutes
     10/03/2013  AA0443 JFK-MIA 07:15-10:45 (First), 03 hours 30 minutes
@@ -35,7 +38,7 @@ Example of a North American flight:
 
 Example of a Europe to Asia flight:
 
-    $ python tool.py LHR HKG 10/03/2013-11/03/2013 C 1
+    $ python tool.py LHR --to HKG 10/03/2013-11/03/2013 C 1
     Checking 10/03/2013
     Checking 11/03/2013
     10/03/2013  CX0256 LHR-HKG 20:40-16:30 (Business), 11 hours 50 minutes

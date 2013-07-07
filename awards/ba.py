@@ -1,9 +1,10 @@
-import sys, re, json, mechanize, logging, time, pprint, datetime
+import sys, re, json, mechanize, logging, time, pprint, datetime, uuid, os
 from BeautifulSoup import BeautifulSoup
 
 """ A class to search for British Airways/Oneworld award availability.
 """
 class BA:
+    debug_dir = u"debug"
     def __init__(self, debug=False, config=None):
         self.debug = debug
         self.config = config
@@ -12,11 +13,20 @@ class BA:
 
         # ensure mechanize debug logging is on
         if self.debug:
-            loggers = ["mechanize", "mechanize.forms"]
+            loggers = ["mechanize", "mechanize.forms", "ROOT"]
             for loggername in loggers:
                 logger = logging.getLogger(loggername)
                 logger.addHandler(logging.StreamHandler(sys.stdout))
                 logger.setLevel(logging.INFO)
+
+    def write_html(self, html):
+        """ Save HTML to the debug directory, ordered by time (UUID). """
+        if self.debug:
+            if not os.path.exists(self.debug_dir):
+                os.mkdir(self.debug_dir)
+            f = open(self.debug_dir + os.sep + unicode(uuid.uuid1()) + u".html", "w")
+            f.write(html)
+            f.close
 
     def load_config(self, config_filename):
         """ Load the configuration from a JSON file. """
@@ -26,8 +36,8 @@ class BA:
         self.config = json.load(config_file)
         config_file.close()
         # check for non-default values
-        assert(self.config['username'] != "")
-        assert(self.config['password'] != "")
+        assert(self.config['ba']['username'] != "")
+        assert(self.config['ba']['password'] != "")
 
     def lookup_dates(self, from_code, to_code, dates, travel_class, adults):
         """ Lookup award availability for a date range. """
@@ -75,7 +85,7 @@ class BA:
 
         # re-use browser if one exists
         if self.logged_in:
-            response = self.b.open(self.config['base'])
+            response = self.b.open(self.config['ba']['base'])
         else:
             # submit login form
             self.b = mechanize.Browser(factory=mechanize.RobustFactory())
@@ -84,10 +94,10 @@ class BA:
             self.b.set_debug_responses(self.debug)
             self.b.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=2)
 
-            self.b.open(self.config['base'])
+            self.b.open(self.config['ba']['base'])
             self.b.select_form(name="navLoginForm")
-            self.b['membershipNumber'] = self.config['username']
-            self.b['password'] = self.config['password']
+            self.b['membershipNumber'] = self.config['ba']['username']
+            self.b['password'] = self.config['ba']['password']
             response = self.b.submit()
 
         # replace select input of classes with the real list (done with JS on the actual site)
@@ -106,6 +116,7 @@ class BA:
         self.b['NumberOfAdults'] = [adults]
         response = self.b.submit()
         html = response.read()
+        self.write_html(html)
 
         # go into loop of checking for interstitial pages / stopover pages
         while True:
@@ -115,18 +126,32 @@ class BA:
                 self.b.select_form("plan_trip")
                 response = self.b.submit()
                 html = response.read()
+                self.write_html(html)
             elif 'name="pageid" value="REDEEMINTERSTITIAL"' in html:
                 if self.debug:
                     print "At interstitial page, refreshing..."
 
+                ### This stopped working early 2013.
                 # extract the replacement URL from the javascript
-                replaceURL = ""
-                for url in re.findall(r'replaceURL[ +]= \'(.*?)\'', html):
-                    replaceURL += url
+                #replaceURL = ""
+                #for url in re.findall(r'replaceURL[ +]= \'(.*?)\'', html):
+                #    replaceURL += url
+
+                # var eventId= '111011';
+                eventId = re.search(r'var eventId=.*\'(.+)\'',html).group(1)
+                logging.debug("eventID is: {0}".format(eventId))
+                if eventId is None:
+                    raise Exception("Cannot parse interstitial page. It is not possible to lookup this flight.")
+
+                self.b.select_form(nr=1) # select the second form (SubmitFromInterstitial), the first is the nav.
+                self.b.form.set_all_readonly(False) # otherwise we can't set eId below
+                self.b.form['eId'] = eventId 
 
                 time.sleep(0.5) # wait 500ms
-                response = self.b.open(replaceURL)
+                #response = self.b.open(replaceURL)
+                response = self.b.submit()
                 html = response.read()
+                self.write_html(html)
             else:
                 break
     
