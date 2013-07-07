@@ -53,6 +53,12 @@ class BA:
             start_date = dates
             end_date = dates
 
+        if "," in to_code:
+            # multiple destinations
+            to_codes = to_code.split(",")
+        else:
+            to_codes = [to_code]
+
         # parse the strings to datetime.date objects
         start_date = datetime.datetime.strptime(start_date, "%d/%m/%Y")
         end_date = datetime.datetime.strptime(end_date, "%d/%m/%Y")
@@ -66,13 +72,15 @@ class BA:
 
         results = {}
         for single_date in daterange(start_date, end_date):
-            date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
-            print "Checking "+date
-            result = self.lookup_day(from_code, to_code, date, travel_class, adults)
-            for day in result:
-                if day not in results:
-                    results[day] = []
-                results[day].extend(result[day])
+            for current_to_code in to_codes:
+                date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
+                print "Checking {0}, {1}-{2}".format(date, from_code, current_to_code)
+                result = self.lookup_day(from_code, current_to_code, date, travel_class, adults)
+                print "... {0} flights".format(sum(map(lambda x: len(x), result.values())))
+                for day in result:
+                    if day not in results:
+                        results[day] = []
+                    results[day].extend(result[day])
 
         return results
 
