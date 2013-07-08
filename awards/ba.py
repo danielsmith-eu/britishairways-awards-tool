@@ -28,6 +28,13 @@ class BA:
                 logger.addHandler(logging.StreamHandler(sys.stdout))
                 logger.setLevel(logging.INFO)
 
+    def notify(self, notify):
+        try:
+            from pync import Notifier
+            Notifier.notify(notify, title="Award Availability Finder")
+        except Exception as e:
+            pass
+
     def write_html(self, html):
         """ Save HTML to the debug directory, ordered by time (UUID). """
         if self.debug:
@@ -94,6 +101,8 @@ class BA:
                         count = sum(map(lambda x: len(x), result.values()))
                         sofar += count
                         print "... {0} flights ({1} total)".format(count, sofar)
+                        if count > 0:
+                            self.notify("Found {0} flight(s) {1}-{2} on {3}".format(count,current_from_code,current_to_code,date))
                         for day in result:
                             if day not in results:
                                 results[day] = []
