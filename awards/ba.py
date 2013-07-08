@@ -83,6 +83,7 @@ class BA:
                 yield start_date + datetime.timedelta(n)
 
         results = {}
+        sofar = 0
         for single_date in daterange(start_date, end_date):
             for current_from_code in from_codes:
                 for current_to_code in to_codes:
@@ -90,7 +91,9 @@ class BA:
                         date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
                         print "Checking {0}, {1}-{2}, {3} ({4} seats)".format(date, current_from_code, current_to_code, self.classes[current_travel_class], adults)
                         result = self.lookup_day(current_from_code, current_to_code, date, current_travel_class, adults)
-                        print "... {0} flights".format(sum(map(lambda x: len(x), result.values())))
+                        count = sum(map(lambda x: len(x), result.values()))
+                        sofar += count
+                        print "... {0} flights ({1} total)".format(count, sofar)
                         for day in result:
                             if day not in results:
                                 results[day] = []
