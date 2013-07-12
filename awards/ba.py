@@ -181,7 +181,7 @@ class BA:
                 self.b.form.set_all_readonly(False) # otherwise we can't set eId below
                 self.b.form['eId'] = eventId 
 
-                time.sleep(0.5) # wait 500ms
+                time.sleep(0.1) # wait 500ms
                 #response = self.b.open(replaceURL)
                 response = self.b.submit()
                 html = response.read()
