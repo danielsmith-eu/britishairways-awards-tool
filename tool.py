@@ -1,7 +1,10 @@
-import sys, traceback, argparse
+import sys
+import traceback
+import argparse
+import logging
 from awards.ba import BA
 from datasources.oneworld import Oneworld
-from datasources.alldata import AllData
+#from datasources.alldata import AllData
 
 parser = argparse.ArgumentParser(description='Look up oneworld award flight availability via British Airways.')
 parser.add_argument('from', type=str, action="store", help='Departure Airport (3-letter Code, e.g. LHR)')
@@ -12,50 +15,41 @@ parser.add_argument('dates', type=str, action="store",
 parser.add_argument('class', type=str, action="store",
                    help='Class of travel as 1-letter code, where Economy=M, Premium Economy=W, Business=C and First=F')
 parser.add_argument('adults', type=str, action="store", help='Number of adults')
-parser.add_argument('--debug', default=False, action="store_true", help='Enable verbose logging')
+parser.add_argument('--debug', default=False, action="store_true", help='Enable very verbose logging')
+parser.add_argument('--info', default=False, action="store_true", help='Enable information logging while searching')
 
 args = vars(parser.parse_args())
-
-from_code = args['from']
-date = args['dates']
-travel_class = args['class']
-adults = args['adults']
-
-debug = args['debug']
 
 # download data sources
 #ad = AllData()
 #data = ad.get_data()
 
 if args['to'] is None:
-    # to_code is blank, so return a list of flights from the departure city
+    # Destination airport is blank, so return a list of flights from the departure city
     ow = Oneworld()
 
     try:
-        routes = ow.get_uniq_routes(from_code)
+        routes = ow.get_uniq_routes(args['from'])
         formatted = ow.format_routes(routes)
         print formatted
     except Exception as e:
-        print "There was an error running the search:\n"
-        traceback.print_exc()
+        logging.error("There was an error running the search:".format(traceback.format_exc()))
 
 else:
-    to_code = args['to']
-    # to_code is present, so search for award availability
-    ba = BA(debug=debug)
+    # Destination airport is present, so search for award availability
+    ba = BA(debug=args['debug'], info=args['info'])
 
     try:
         ba.load_config("config.json")
     except Exception as e:
         # error if the file isn't present or if default values are still present
-        print "Configuration could not be loaded, ensure that config.json.default has been copied to config.json, and that empty values have been filled in.\n"
+        logging.error("Configuration could not be loaded, ensure that config.json.default has been copied to config.json, and that empty values have been filled in.")
         sys.exit(1)
 
     try:
-        results = ba.lookup_dates(from_code, to_code, date, travel_class, adults)
+        results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'])
         formatted = ba.format_results(results)
         print formatted
     except Exception as e:
-        print "There was an error running the search:\n"
-        traceback.print_exc()
+        logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
 

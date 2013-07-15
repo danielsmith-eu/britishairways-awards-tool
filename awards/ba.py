@@ -1,4 +1,13 @@
-import sys, re, json, mechanize, logging, time, pprint, datetime, uuid, os
+import sys
+import re
+import json
+import mechanize
+import logging
+import time
+import pprint
+import datetime
+import uuid
+import os
 from BeautifulSoup import BeautifulSoup
 
 """ A class to search for British Airways/Oneworld award availability.
@@ -14,11 +23,12 @@ class BA:
         "F": "First Class"
     }
 
-    def __init__(self, debug=False, config=None):
+    def __init__(self, debug=False, config=None, info=False):
         self.debug = debug
         self.config = config
         self.logged_in = False
         self.b = None
+        self.logger = logging.getLogger("ba")
 
         # ensure mechanize debug logging is on
         if self.debug:
@@ -26,7 +36,11 @@ class BA:
             for loggername in loggers:
                 logger = logging.getLogger(loggername)
                 logger.addHandler(logging.StreamHandler(sys.stdout))
-                logger.setLevel(logging.INFO)
+                logger.setLevel(logging.DEBUG)
+
+        if info:
+            self.logger.addHandler(logging.StreamHandler(sys.stdout))
+            self.logger.setLevel(logging.INFO)
 
     def notify(self, notify):
         try:
@@ -96,11 +110,11 @@ class BA:
                 for current_to_code in to_codes:
                     for current_travel_class in travel_classes:
                         date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
-                        print "Checking {0}, {1}-{2}, {3} ({4} seats)".format(date, current_from_code, current_to_code, self.classes[current_travel_class], adults)
+                        self.logger.info("Checking {0}, {1}-{2}, {3} ({4} seats)".format(date, current_from_code, current_to_code, self.classes[current_travel_class], adults))
                         result = self.lookup_day(current_from_code, current_to_code, date, current_travel_class, adults)
                         count = sum(map(lambda x: len(x), result.values()))
                         sofar += count
-                        print "... {0} flights ({1} total)".format(count, sofar)
+                        self.logger.info("... {0} flights ({1} total)".format(count, sofar))
                         if count > 0:
                             self.notify("Found {0} flight(s) {1}-{2} on {3}".format(count,current_from_code,current_to_code,date))
                         for day in result:
@@ -156,14 +170,14 @@ class BA:
         while True:
             if 'name="pageid" value="STOPOVERROUTE"' in html:
                 if self.debug:
-                    print "Ignoring stopovers option."
+                    self.logger.debug("Ignoring stopovers option.")
                 self.b.select_form("plan_trip")
                 response = self.b.submit()
                 html = response.read()
                 self.write_html(html)
             elif 'name="pageid" value="REDEEMINTERSTITIAL"' in html:
                 if self.debug:
-                    print "At interstitial page, refreshing..."
+                    self.logger.debug("At interstitial page, refreshing...")
 
                 ### This stopped working early 2013.
                 # extract the replacement URL from the javascript
@@ -173,7 +187,7 @@ class BA:
 
                 # var eventId= '111011';
                 eventId = re.search(r'var eventId=.*\'(.+)\'',html).group(1)
-                logging.debug("eventID is: {0}".format(eventId))
+                self.logger.debug("eventID is: {0}".format(eventId))
                 if eventId is None:
                     raise Exception("Cannot parse interstitial page. It is not possible to lookup this flight.")
 
@@ -191,11 +205,11 @@ class BA:
     
         if "We are unable to find seats for your journey" in html:
             if self.debug:
-                print "No availability for date: {0}".format(date)
+                self.logger.debug("No availability for date: {0}".format(date))
             return []
         else:
             if self.debug:
-                print "We found availability for the date: {0}".format(date)
+                self.logger.debug("We found availability for the date: {0}".format(date))
 
         results = {}
         results[date] = self.parse_flights(html)
@@ -264,7 +278,7 @@ class BA:
         """ Format a structured dict of flight optons (from parse_flights) into a human-readable list. """
         if self.debug:
             simple = pprint.pformat(results, indent=2)
-            print simple
+            self.logger.debug(simple)
 
         lines = ""
         dates = sorted(results) # order the dates
