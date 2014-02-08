@@ -20,7 +20,8 @@ class BA:
         "M": "Economy",
         "W": "Premium Economy",
         "C": "Business Class",
-        "F": "First Class"
+        "F": "First Class",
+        "0": "Unknown Class", # Our code used internally here
     }
 
     def __init__(self, debug=False, config=None, info=False):
@@ -41,6 +42,9 @@ class BA:
         if info:
             self.logger.addHandler(logging.StreamHandler(sys.stdout))
             self.logger.setLevel(logging.INFO)
+        elif debug:
+            self.logger.addHandler(logging.StreamHandler(sys.stdout))
+            self.logger.setLevel(logging.DEBUG)
 
     def notify(self, notify):
         try:
@@ -143,7 +147,7 @@ class BA:
             self.b.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=2)
 
             self.b.open(self.config['ba']['base'])
-            self.b.select_form(name="navLoginForm")
+            self.b.select_form(name="toploginform")
             self.b['membershipNumber'] = self.config['ba']['username']
             self.b['password'] = self.config['ba']['password']
             response = self.b.submit()
@@ -186,7 +190,7 @@ class BA:
                 #    replaceURL += url
 
                 # var eventId= '111011';
-                eventId = re.search(r'var eventId=.*\'(.+)\'',html).group(1)
+                eventId = re.search(r'var eventId = \'(.+)\'',html).group(1)
                 self.logger.debug("eventID is: {0}".format(eventId))
                 if eventId is None:
                     raise Exception("Cannot parse interstitial page. It is not possible to lookup this flight.")
@@ -203,10 +207,10 @@ class BA:
             else:
                 break
     
-        if "We are unable to find seats for your journey" in html:
+        if "We are unable to find seats for your journey" in html or "Sorry, there are no flights available on " in html:
             if self.debug:
                 self.logger.debug("No availability for date: {0}".format(date))
-            return []
+            return {date: []}
         else:
             if self.debug:
                 self.logger.debug("We found availability for the date: {0}".format(date))
@@ -226,57 +230,107 @@ class BA:
 
         # parse with BeautifulSoup
         soup = BeautifulSoup(html)
-        for table in soup.findAll("table", {"class": "flightListTable"}):
+        #for table in soup.findAll("table[class=tblLyOut]"):
+        route = []
+        for table in soup.findAll("table"):
+            cls = table.get("class")
+            if "flightListTable" not in cls:
+                continue
+
             # ignore the outer tables
             if table.get("id") is not None:
                 continue
 
+            # get the header in case the route is listed in it (does this for some direct routes)
+            if len(route) == 0:
+                for thead in table.findAll("thead"):
+                    for a in thead.findAll("a", {"class": "airportCodeLink"}):
+                        if len(route) < 2:
+                            route.append(a.string)
+
+
             result = {}
-            for tr in table.findAll("tr"):
-                flight = {}
-                for span in tr.findAll("span"):
-                    cls = span.get("class")
-                    if cls is None:
-                        continue
-                    if "departtime" in cls:
-                        flight['departs'] = span.string
-                    if "arrivaltime" in cls:
-                        flight['arrives'] = span.string
-                    if "journeyTime" in cls:
-                        # journey time is total per result not per flight
-                        result['duration'] = span.string.replace(u'\xa0', u' ')
-                for a in tr.findAll("a"):
-                    cls = a.get("class")
-                    if cls is None:
-                        continue
-                    if "airportCodeLink" in cls:
-                        if "route" not in flight:
-                            flight['route'] = []
-                        flight['route'].append(a.string)
-                    if "flightPopUp" in cls:
-                        flight['flight'] = a.string
-                for td in tr.findAll("td"):
-                    cls = td.get("class")
-                    if cls is None:
-                        continue
-                    if "classoftravel" in cls:
-                        if td.string == "" or td.string is None:
-                            flight['class'] = td.a.string # BA flights have a link to the class
-                        else:
-                            flight['class'] = td.string # AA etc flights do not
 
-                if flight != {}:
-                    if "flights" not in result:
-                        result['flights'] = []
-                    result['flights'].append(flight)
+            for tbody in table.findAll("tbody"):
+                for tr in tbody.findAll("tr"):
+                    if tr.get("id") and tr.get("id")[0:4] == "smry":
+                        continue # this is a summary row, hidden to users that contains > 1 flight information, we ignore it
 
-            results.append(result)
+                    flight = {}
+                    cabincode = "0"
+                    for span in tr.findAll("span"):
+                        cls = span.get("class")
+                        if cls is None:
+                            continue
+                        if "departtime" in cls:
+                            flight['departs'] = span.string
+                        if "arrivaltime" in cls:
+                            flight['arrives'] = span.string
+                        if "journeyTime" in cls:
+                            # journey time is total per result not per flight
+                            result['duration'] = span.string.replace(u'\xa0', u' ')
+                    for a in tr.findAll("a"):
+                        cls = a.get("class")
+                        if cls is None:
+                            continue
+                        if "flightPopUp" in cls:
+                            flight['flight'] = a.string
+
+                        # these are if the route is in the first column in side the cell with the time and date
+                        # sometimes they are in the column headers, see below
+                        if "airportCodeLink" in cls:
+                            if "route" not in flight:
+                                flight['route'] = []
+
+                            if len(flight['route']) < 2: # it will repeat after 2 because the page repeats them
+                                flight['route'].append(a.string)
+
+                        # capturing the route 
+
+                    for inpu in tr.findAll("input", {"type": "radio"}):
+                        cabincode = "0"
+                        codes = {"CabinCodeF": "F", "CabinCodeC": "C", "CabinCodeW": "W", "CabinCodeM": "M"}
+                        for code_find, code in codes.items():
+                            if code_find in inpu.get("id"):
+                                cabincode = code
+                                continue
+
+                        if 'class' in flight and flight['class'] != '': # since each query returns more than one class now
+                            flight['class'] += "/"
+                        flight['class'] = self.classes[cabincode]
+
+    #                for td in tr.findAll("td"):
+    #                    cls = td.get("class")
+    #                    if cls is None:
+    #                        continue
+    #                    if "classoftravel" in cls:
+    #                        if td.string == "" or td.string is None:
+    #                            flight['class'] = td.a.string # BA flights have a link to the class
+    #                        else:
+    #                            flight['class'] = td.string # AA etc flights do not
+
+                    if flight != {}:
+                        if "flights" not in result:
+                            result['flights'] = []
+
+                        # add the route from the header column if it wasn't included in the individual rows
+                        if flight.get("route") is None:
+                            flight['route'] = route
+
+                        if flight.get("class") is None:
+                            flight['class'] = self.classes[cabincode]
+
+                        result['flights'].append(flight)
+
+                if result != {}: # some rows have no flights / data at all now
+                    results.append(result)
 
         return results
 
     def format_results(self, results):
         """ Format a structured dict of flight optons (from parse_flights) into a human-readable list. """
         if self.debug:
+            self.logger.debug("Formatting these results: ")
             simple = pprint.pformat(results, indent=2)
             self.logger.debug(simple)
 
