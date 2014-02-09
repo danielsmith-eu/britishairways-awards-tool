@@ -297,7 +297,9 @@ class BA:
 
                         if 'class' in flight and flight['class'] != '': # since each query returns more than one class now
                             flight['class'] += "/"
-                        flight['class'] = self.classes[cabincode]
+                        else:
+                            flight['class'] = ""
+                        flight['class'] += self.classes[cabincode]
 
     #                for td in tr.findAll("td"):
     #                    cls = td.get("class")
