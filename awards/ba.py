@@ -234,7 +234,10 @@ class BA:
         route = []
         for table in soup.findAll("table"):
             cls = table.get("class")
-            if "flightListTable" not in cls:
+            if cls is None:
+                continue
+
+            if not("flightListTable" in cls):
                 continue
 
             # ignore the outer tables
