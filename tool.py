@@ -49,7 +49,8 @@ else:
     try:
         results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'])
         formatted = ba.format_results(results)
-        print formatted
+        if len(formatted) > 0:
+            print formatted
     except Exception as e:
         logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
 

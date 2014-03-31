@@ -280,6 +280,7 @@ class BA:
             simple = pprint.pformat(results, indent=2)
             self.logger.debug(simple)
 
+        count = None
         lines = ""
         dates = sorted(results) # order the dates
         for date in dates:
@@ -304,6 +305,8 @@ class BA:
                     lines +=  "\n" # flight newline
             lines += "\n" # date separator
 
+        if count is None or count == 0:
+            return ""
 
         return lines
 
