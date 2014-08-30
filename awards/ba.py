@@ -129,17 +129,9 @@ class BA:
 
         return results
 
-
-    def lookup_day(self, from_code, to_code, date, travel_class, adults):
-        """ Lookup award availability for a single day. """
-
-        if self.config is None:
-            raise Exception("Configuration not loaded.")
-
+    def login(self):
         # re-use browser if one exists
-        if self.logged_in:
-            response = self.b.open(self.config['ba']['base'])
-        else:
+        if not self.logged_in:
             # submit login form
             self.b = mechanize.Browser(factory=mechanize.RobustFactory())
             self.b.set_debug_http(self.debug)
@@ -152,15 +144,30 @@ class BA:
             self.b['membershipNumber'] = self.config['ba']['username']
             self.b['password'] = self.config['ba']['password']
             response = self.b.submit()
+            html = response.get_data()
 
-        # replace select input of classes with the real list (done with JS on the actual site)
+            if "We are not able to recognise the membership number or PIN/password that you have supplied" in html or "You have made too many invalid login attempts" in html:
+                raise LoginException()
+
+            # it worked
+            self.logged_in = True
+
+        # always re-get this page, after a successful login we are sent to the exec club homepage
+        response = self.b.open(self.config['ba']['base'])
+        return response
+
+    def lookup_day(self, from_code, to_code, date, travel_class, adults):
+        """ Lookup award availability for a single day. """
+
+        if self.config is None:
+            raise Exception("Configuration not loaded.")
+
+        response = self.login()
         html = response.get_data()
 
-        if "We are not able to recognise the membership number or PIN/password that you have supplied" in html or "You have made too many invalid login attempts" in html:
-            raise LoginException()
-
         self.write_html(html)
-        html = html.replace('<select id="cabin" name="CabinCode" class="withLink"><option>x</option></select>', '<select id="cabin" name="CabinCode" class="withLink"><option value="M">Economy</option><option value="W">Premium economy</option><option value="C">Business/Club</option><option value="F">First</option></select>')
+        # replace select input of classes with the real list (done with JS on the actual site)
+        html = html.replace('<select name="CabinCode" class="m" id="cabin"><option>x</option></select>', '<select id="cabin" name="CabinCode" class="withLink"><option value="M">Economy</option><option value="W">Premium economy</option><option value="C">Business/Club</option><option value="F">First</option></select>')
         response.set_data(html)
         self.b.set_response(response)
 
