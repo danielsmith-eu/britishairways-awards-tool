@@ -9,6 +9,7 @@ import datetime
 import uuid
 import os
 from BeautifulSoup import BeautifulSoup
+from exception import LoginException
 
 """ A class to search for British Airways/Oneworld award availability.
 """
@@ -154,6 +155,11 @@ class BA:
 
         # replace select input of classes with the real list (done with JS on the actual site)
         html = response.get_data()
+
+        if "We are not able to recognise the membership number or PIN/password that you have supplied" in html:
+            raise LoginException()
+
+        self.write_html(html)
         html = html.replace('<select id="cabin" name="CabinCode" class="withLink"><option>x</option></select>', '<select id="cabin" name="CabinCode" class="withLink"><option value="M">Economy</option><option value="W">Premium economy</option><option value="C">Business/Club</option><option value="F">First</option></select>')
         response.set_data(html)
         self.b.set_response(response)
