@@ -156,7 +156,7 @@ class BA:
         # replace select input of classes with the real list (done with JS on the actual site)
         html = response.get_data()
 
-        if "We are not able to recognise the membership number or PIN/password that you have supplied" in html:
+        if "We are not able to recognise the membership number or PIN/password that you have supplied" in html or "You have made too many invalid login attempts" in html:
             raise LoginException()
 
         self.write_html(html)
