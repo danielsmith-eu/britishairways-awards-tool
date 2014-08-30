@@ -3,7 +3,7 @@ import traceback
 import argparse
 import logging
 from awards.ba import BA
-from awards.exception import LoginException
+from awards.exception import LoginException, CaptchaException
 from datasources.oneworld import Oneworld
 #from datasources.alldata import AllData
 
@@ -53,8 +53,10 @@ else:
         formatted = ba.format_results(results)
         if len(formatted) > 0:
             print formatted
+    except CaptchaException as e:
+        logging.error("A CAPTCHA re-validation is required")
     except LoginException as e:
-        logging.error("PIN/Username and/or password are incorrect, fix them in config.json.");
+        logging.error("PIN/Username and/or password are incorrect, fix them in config.json.")
     except Exception as e:
         logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
 

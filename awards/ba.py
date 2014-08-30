@@ -9,7 +9,7 @@ import datetime
 import uuid
 import os
 from BeautifulSoup import BeautifulSoup
-from exception import LoginException
+from exception import LoginException, CaptchaException
 
 """ A class to search for British Airways/Oneworld award availability.
 """
@@ -224,6 +224,8 @@ class BA:
             if self.debug:
                 self.logger.debug("No availability for date: {0}".format(date))
             return {date: []}
+        elif "we need to check you are a real person" in html:
+            raise CaptchaException()
         else:
             if self.debug:
                 self.logger.debug("We found availability for the date: {0}".format(date))
@@ -340,7 +342,9 @@ class BA:
                         result['flights'].append(flight)
 
                 if result != {}: # some rows have no flights / data at all now
-                    if not directonly or (directonly and len(result['flights']) < 2):
+                    if directonly and len(result['flights']) > 1:
+                        self.logger.info("Skipping non-direct flight with {0} segments.".format(len(result['flights'])))
+                    else:
                         results.append(result)
 
         return results
