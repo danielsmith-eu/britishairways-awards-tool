@@ -8,18 +8,20 @@ Usage:
     Look up oneworld award flight availability via British Airways.
 
     positional arguments:
-      from        Departure Airport (3-letter Code, e.g. LHR)
-      dates       Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format
-      class       Class of travel as 1-letter code, where Economy=M, Premium
-                  Economy=W, Business=C and First=F
-      adults      Number of adults
+      from          Departure Airport (3-letter Code, e.g. LHR)
+      dates         Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format
+      class         Class of travel as 1-letter code, where Economy=M, Premium
+                    Economy=W, Business=C and First=F
+      adults        Number of adults
 
     optional arguments:
-      -h, --help  show this help message and exit
-      --to TO     Arrival Airport (3-letter Code, e.g. LHR), leave blank to find
-                  all oneworld flights from the departure city. Comma separate
-                  multiple airportsm e.g. EDI,MAN,DUB,NCL
-      --debug     Enable verbose logging
+      -h, --help    show this help message and exit
+      --to TO       Arrival Airport (3-letter Code, e.g. LHR), leave blank to find
+                    all oneworld flights from the departure city. Comma separate
+                    multiple airportsm e.g. EDI,MAN,DUB,NCL
+      --debug       Enable verbose logging
+      --info        Show information as searches are performed
+      --directonly  Ignore results that are made up of multiple segments
 
 
 
