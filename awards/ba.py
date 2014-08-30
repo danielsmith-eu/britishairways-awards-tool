@@ -74,7 +74,7 @@ class BA:
         assert(self.config['ba']['username'] != "")
         assert(self.config['ba']['password'] != "")
 
-    def lookup_dates(self, from_code, to_code, dates, travel_class, adults):
+    def lookup_dates(self, from_code, to_code, dates, travel_class, adults, directonly):
         """ Lookup award availability for a date range. """
 
         if self.config is None:
@@ -116,7 +116,7 @@ class BA:
                     for current_travel_class in travel_classes:
                         date = single_date.strftime("%d/%m/%Y") #, single_date.timetuple()) 
                         self.logger.info("Checking {0}, {1}-{2}, {3} ({4} seats)".format(date, current_from_code, current_to_code, self.classes[current_travel_class], adults))
-                        result = self.lookup_day(current_from_code, current_to_code, date, current_travel_class, adults)
+                        result = self.lookup_day(current_from_code, current_to_code, date, current_travel_class, adults, directonly)
                         count = sum(map(lambda x: len(x), result.values()))
                         sofar += count
                         self.logger.info("... {0} flights ({1} total)".format(count, sofar))
@@ -156,7 +156,7 @@ class BA:
         response = self.b.open(self.config['ba']['base'])
         return response
 
-    def lookup_day(self, from_code, to_code, date, travel_class, adults):
+    def lookup_day(self, from_code, to_code, date, travel_class, adults, directonly):
         """ Lookup award availability for a single day. """
 
         if self.config is None:
@@ -229,10 +229,10 @@ class BA:
                 self.logger.debug("We found availability for the date: {0}".format(date))
 
         results = {}
-        results[date] = self.parse_flights(html)
+        results[date] = self.parse_flights(html, directonly)
         return results
 
-    def parse_flights(self, html):
+    def parse_flights(self, html, directonly):
         """ Parse the BA HTML page into a structured dict of flight options. """
         if self.debug:
             out = open("results.html", "w")
@@ -263,7 +263,6 @@ class BA:
                     for a in thead.findAll("a", {"class": "airportCodeLink"}):
                         if len(route) < 2:
                             route.append(a.string)
-
 
             result = {}
 
@@ -341,7 +340,8 @@ class BA:
                         result['flights'].append(flight)
 
                 if result != {}: # some rows have no flights / data at all now
-                    results.append(result)
+                    if not directonly or (directonly and len(result['flights']) < 2):
+                        results.append(result)
 
         return results
 

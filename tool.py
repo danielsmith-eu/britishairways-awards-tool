@@ -18,6 +18,7 @@ parser.add_argument('class', type=str, action="store",
 parser.add_argument('adults', type=str, action="store", help='Number of adults')
 parser.add_argument('--debug', default=False, action="store_true", help='Enable very verbose logging')
 parser.add_argument('--info', default=False, action="store_true", help='Enable information logging while searching')
+parser.add_argument('--directonly', default=False, action="store_true", help='Only return direct flights')
 
 args = vars(parser.parse_args())
 
@@ -48,7 +49,7 @@ else:
         sys.exit(1)
 
     try:
-        results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'])
+        results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'], args['directonly'])
         formatted = ba.format_results(results)
         if len(formatted) > 0:
             print formatted
