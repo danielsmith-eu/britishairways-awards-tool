@@ -2,7 +2,8 @@
     "ba": {
         "base": "https://www.britishairways.com/travel/redeem/execclub/_gf/en_gb",
         "username": "",
-        "password": ""
+        "password": "",
+        "cookiejar": ".bacookiejar"
     },
     "avios": {
         "base": "https://www.avios.com/gb/en_gb/travel/searchCriteria.do?searchType=searchFlights&from=SpendNav",

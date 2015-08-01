@@ -1,9 +1,7 @@
-import sys
 import traceback
 import argparse
 import logging
-from awards.ba import BA
-from awards.exception import LoginException, CaptchaException
+from awards.ba2 import BA2
 from datasources.oneworld import Oneworld
 #from datasources.alldata import AllData
 
@@ -14,7 +12,7 @@ parser.add_argument('--to', type=str, action="store",
 parser.add_argument('dates', type=str, action="store",
                    help='Date or Date Range in DD/MM/YYYY or DD/MM/YYYY-DD/MM/YYYY format')
 parser.add_argument('class', type=str, action="store",
-                   help='Class of travel as 1-letter code, where Economy=M, Premium Economy=W, Business=C and First=F')
+                   help='Class of travel, as a fare code such as Y, W, J, F or name like economy, premium, business, first')
 parser.add_argument('adults', type=str, action="store", help='Number of adults')
 parser.add_argument('--debug', default=False, action="store_true", help='Enable very verbose logging')
 parser.add_argument('--info', default=False, action="store_true", help='Enable information logging while searching')
@@ -39,24 +37,13 @@ if args['to'] is None:
 
 else:
     # Destination airport is present, so search for award availability
-    ba = BA(debug=args['debug'], info=args['info'])
-
-    try:
-        ba.load_config("config.json")
-    except Exception as e:
-        # error if the file isn't present or if default values are still present
-        logging.error("Configuration could not be loaded, ensure that config.json.default has been copied to config.json, and that empty values have been filled in.")
-        sys.exit(1)
+    ba = BA2(debug=args['debug'], info=args['info'])
 
     try:
         results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'], args['directonly'])
         formatted = ba.format_results(results)
         if len(formatted) > 0:
             print formatted
-    except CaptchaException as e:
-        logging.error("A CAPTCHA re-validation is required")
-    except LoginException as e:
-        logging.error("PIN/Username and/or password are incorrect, fix them in config.json.")
     except Exception as e:
         logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
 

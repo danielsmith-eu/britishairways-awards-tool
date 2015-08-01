@@ -8,6 +8,7 @@ import pprint
 import datetime
 import uuid
 import os
+import cookielib
 from BeautifulSoup import BeautifulSoup
 from exception import LoginException, CaptchaException
 
@@ -62,6 +63,7 @@ class BA:
             f = open(self.debug_dir + os.sep + unicode(uuid.uuid1()) + u".html", "w")
             f.write(html)
             f.close
+        self.cj.save()
 
     def load_config(self, config_filename):
         """ Load the configuration from a JSON file. """
@@ -138,6 +140,13 @@ class BA:
             self.b.set_debug_redirects(self.debug)
             self.b.set_debug_responses(self.debug)
             self.b.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=2)
+            
+            self.cj = cookielib.LWPCookieJar(self.config['ba']['cookiejar'])
+            try:
+                self.cj.load()
+            except Exception as e:
+                pass
+            self.b.set_cookiejar(self.cj)
 
             self.b.open(self.config['ba']['base'])
             self.b.select_form(name="toploginform")
