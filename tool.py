@@ -24,26 +24,27 @@ args = vars(parser.parse_args())
 #ad = AllData()
 #data = ad.get_data()
 
-if args['to'] is None:
+to = args['to']
+if to is None:
     # Destination airport is blank, so return a list of flights from the departure city
     ow = Oneworld()
 
     try:
+        destinations = set()
         routes = ow.get_uniq_routes(args['from'])
-        formatted = ow.format_routes(routes)
-        print formatted
-    except Exception as e:
-        logging.error("There was an error running the search:".format(traceback.format_exc()))
-
-else:
-    # Destination airport is present, so search for award availability
-    ba = BA2(debug=args['debug'], info=args['info'])
-
-    try:
-        results = ba.lookup_dates(args['from'], args['to'], args['dates'], args['class'], args['adults'], args['directonly'])
-        formatted = ba.format_results(results)
-        if len(formatted) > 0:
-            print formatted
+        for src in routes.keys():
+            for dst in routes[src]:
+                destinations.add(dst)
+        to = ",".join(destinations)
     except Exception as e:
         logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
+
+ba = BA2(debug=args['debug'], info=args['info'])
+try:
+    results = ba.lookup_dates(args['from'], to, args['dates'], args['class'], args['adults'], args['directonly'])
+    formatted = ba.format_results(results)
+    if len(formatted) > 0:
+        print formatted
+except Exception as e:
+    logging.error("There was an error running the search: {0}".format(traceback.format_exc()))
 

@@ -6,6 +6,7 @@ import uuid
 import os
 import string
 import requests
+import requests_cache
 from BeautifulSoup import BeautifulSoup
 
 """ A class to search for British Airways/Oneworld award availability.
@@ -49,6 +50,8 @@ class BA2:
         self.logged_in = False
         self.b = None
         self.logger = logging.getLogger("ba")
+
+        requests_cache.install_cache("ba_cache", backend="sqlite", expire_after=60*14) # cache for 14 mins
 
         # ensure mechanize debug logging is on
         if self.debug:
